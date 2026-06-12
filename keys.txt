@@ -1,3 +1,1 @@
-# Проверка: 01.04.26 21.48
-vless://c220f447-badb-4120-aa3c-8c10f0a6dcb0@es3.odavpn.online:55607/?type=tcp&encryption=none&flow=xtls-rprx-vision&sni=ya.ru&fp=chrome&security=reality&pbk=SYwb52VR70d1QPMxZymKroCuXnL69YalD5yr0J1yinQ&sid=aabbccdd#%F0%9F%87%AA%F0%9F%87%B8%20Spain%20%5BSNI-RU%5D%20ya.ru
-vless://1fabb370-dac5-47cd-a2cb-f8e82ed9223b@ru.v2tunray.io:443?type=xhttp&security=reality&encryption=none&fp=chrome&pbk=_1Vo7MoIcb8M1u2e7BkXRQx52-ls3mnMqzTs-TrOjg0&sid=287d&sni=www.vk.com&host=vk.com&mode=auto#%F0%9F%87%BA%F0%9F%87%B8%20United%20States%20%5BSNI-RU%5D%20www.vk.com
+# Проверка: 12.06.26 17.42
