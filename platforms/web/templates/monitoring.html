@@ -1,0 +1,88 @@
+<div id="monitoring-data" class="card"></div>
+<button class="btn" onclick="loadData()">🔄 Обновить</button>
+
+<script>
+  function formatBytes(bytes) {
+    if (bytes === 0) return "0 B";
+    const units = ["B", "KB", "MB", "GB", "TB"];
+    let i = 0;
+    while (bytes >= 1024 && i < units.length - 1) {
+      bytes /= 1024;
+      i++;
+    }
+    return `${bytes.toFixed(1)} ${units[i]}`;
+  }
+
+  function optional(value, unit = "") {
+    if (value === null || value === undefined) return "N/A";
+    if (typeof value === "number") return `${value.toFixed(1)}${unit}`;
+    return `${value}${unit}`;
+  }
+
+  function renderMonitoring(data) {
+    let html = "";
+
+    const avgLoad = data.cpu.cores_load.reduce((a, b) => a + b, 0) / data.cpu.cores_load.length;
+    html += `<h3>🔹 CPU</h3>`;
+    html += `<p>• Общая загрузка: ${avgLoad.toFixed(1)}%</p>`;
+    html += `<p>• Package температура: ${optional(data.cpu.package_temp, '°C')}</p>`;
+    if (data.cpu.power_w !== null) {
+      html += `<p>• Потребление: ${data.cpu.power_w.toFixed(1)} Вт</p>`;
+    } else {
+      html += `<p>• Потребление: недоступно</p>`;
+    }
+    html += `<p><strong>По ядрам:</strong></p>`;
+    for (let i = 0; i < data.cpu.cores_load.length; i++) {
+      const load = data.cpu.cores_load[i];
+      const freq = i < data.cpu.cores_freq.length ? data.cpu.cores_freq[i] : null;
+      const temp = i < data.cpu.core_temps.length ? data.cpu.core_temps[i] : null;
+      html += `<p>Core ${i}: ${load.toFixed(1)}% @ ${optional(freq, ' MHz')} (${optional(temp, '°C')})</p>`;
+    }
+
+    html += `<h3>🧠 ОЗУ</h3>`;
+    html += `<p>• Загрузка: ${data.ram.used_gb}/${data.ram.total_gb} ГБ (${data.ram.percent}%)</p>`;
+
+    html += `<h3>🔄 Подкачка (Swap)</h3>`;
+    if (data.swap.exists) {
+      html += `<p>• Размер: ${data.swap.used_gb}/${data.swap.total_gb} ГБ (${data.swap.percent.toFixed(1)}%)</p>`;
+    } else {
+      html += `<p>• Файл подкачки отсутствует</p>`;
+    }
+
+    html += `<h3>💾 Диск (/)</h3>`;
+    html += `<p>• Загрузка: ${data.disk.used_gb}/${data.disk.total_gb} ГБ (${data.disk.percent}%)</p>`;
+    html += `<p>• Температура: ${optional(data.disk.temp_c, '°C')}</p>`;
+    if (data.disk_io) {
+      html += `<p>• Чтение всего: ${formatBytes(data.disk_io.read_bytes)}</p>`;
+      html += `<p>• Запись всего: ${formatBytes(data.disk_io.write_bytes)}</p>`;
+    }
+
+    html += `<h3>🌐 Сеть</h3>`;
+    if (data.network.interface) {
+      const io = data.network.io;
+      html += `<p>• Интерфейс: <code>${data.network.interface}</code></p>`;
+      if (io) {
+        html += `<p>• Приём всего: ${formatBytes(io.bytes_recv)}</p>`;
+        html += `<p>• Отправка всего: ${formatBytes(io.bytes_sent)}</p>`;
+      } else {
+        html += `<p>• Статистика недоступна</p>`;
+      }
+    } else {
+      html += `<p>• Статус: ❌ Нет активного подключения</p>`;
+    }
+
+    document.getElementById('monitoring-data').innerHTML = html;
+  }
+
+  async function loadData() {
+    try {
+      const res = await fetch('/api/monitoring/data');
+      const data = await res.json();
+      renderMonitoring(data);
+    } catch (e) {
+      document.getElementById('monitoring-data').innerHTML = `<p class="error">❌ Ошибка: ${e.message}</p>`;
+    }
+  }
+
+  loadData();
+</script>

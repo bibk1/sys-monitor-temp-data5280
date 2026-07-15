@@ -1,0 +1,8 @@
+{
+  "FAST_CONCURRENT": 300,
+  "FAST_TIMEOUT": 3,
+  "PRECISE_CONCURRENT": 60,
+  "PRECISE_TIMEOUT": 10,
+  "SOCKS_PORT_START": 11000,
+  "TEST_FILE_URL": "http://cachefly.cachefly.net/1mb.test"
+}

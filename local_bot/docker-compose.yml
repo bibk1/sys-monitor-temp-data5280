@@ -1,0 +1,26 @@
+services:
+  local_telegram_api:
+    image: aiogram/telegram-bot-api:latest
+    container_name: local_telegram_api
+    restart: unless-stopped
+    
+    # ИСПРАВЛЕНО: Внешний 8002 -> Внутренний 8081 (согласно вашим логам)
+    ports:
+      - "192.168.50.1:8002:8081"
+    
+    volumes:
+      # ИСПРАВЛЕНО: Путь к данным (папка создастся рядом с этим файлом)
+      - ./local_bot_data:/var/lib/telegram-bot-api
+    
+    environment:
+      # Эти переменные подтянутся из .env файла (см. Шаг 2)
+      - TELEGRAM_API_ID=${TELEGRAM_API_ID}
+      - TELEGRAM_API_HASH=${TELEGRAM_API_HASH}
+    
+    # Явно указываем порт и директорию
+    command: >
+      --api-id=${TELEGRAM_API_ID}
+      --api-hash=${TELEGRAM_API_HASH}
+      --server-host=0.0.0.0
+      --http-port=8081
+      --dir=/var/lib/telegram-bot-api

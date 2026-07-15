@@ -1,0 +1,209 @@
+<div class="card">
+  <h3>🐳 Управление Docker контейнерами</h3>
+  <div id="docker-list">
+    <p>Загрузка...</p>
+  </div>
+  <div id="pagination" style="margin-top: 10px; text-align: center;">
+    <!-- Кнопки пагинации -->
+  </div>
+  <button class="btn btn-outline" onclick="showYamlEditor()">⚙️ Редактировать services.yaml</button>
+</div>
+
+<!-- Модальное окно деталей сервиса -->
+<div id="service-modal" class="card" style="display:none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1000; width: 90%; max-width: 600px; max-height: 90vh; overflow-y: auto; background: white; border: 2px solid var(--accent);">
+  <h3 id="modal-title">Сервис</h3>
+  <div id="modal-content"></div>
+  <div style="margin-top: 15px; text-align: right;">
+    <button class="btn btn-outline" onclick="closeModal()">Закрыть</button>
+  </div>
+</div>
+
+<!-- Модальное окно редактора YAML -->
+<div id="yaml-editor-modal" class="card" style="display:none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1000; width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto; background: white; border: 2px solid var(--accent);">
+  <h3>Редактирование services.yaml</h3>
+  <textarea id="yaml-editor" rows="15" style="width: 100%; font-family: monospace;"></textarea>
+  <div style="margin-top: 10px; text-align: right;">
+    <button class="btn" onclick="saveYaml()">Сохранить</button>
+    <button class="btn btn-outline" onclick="closeYamlEditor()">Отмена</button>
+  </div>
+</div>
+
+<!-- Модальное окно редактора Compose -->
+<div id="compose-editor-modal" class="card" style="display:none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1000; width: 90%; max-width: 800px; max-height: 90vh; overflow-y: auto; background: white; border: 2px solid var(--accent);">
+  <h3 id="compose-modal-title">Редактирование docker-compose.yml</h3>
+  <textarea id="compose-editor" rows="15" style="width: 100%; font-family: monospace;"></textarea>
+  <div style="margin-top: 10px; text-align: right;">
+    <button class="btn" onclick="saveCompose()">Сохранить и Перезапустить</button>
+    <button class="btn btn-outline" onclick="closeComposeEditor()">Отмена</button>
+  </div>
+</div>
+
+<script>
+let currentPage = 0;
+let currentEditingServiceId = null;
+
+async function loadDockerServices(page = 0) {
+  currentPage = page;
+  const res = await fetch(`/api/docker/services?page=${page}`);
+  const data = await res.json();
+  
+  let html = '<table style="width:100%; border-collapse: collapse;">';
+  html += '<tr><th>Имя</th><th>Статус</th><th>Действия</th></tr>';
+  
+  if (data.items.length === 0) {
+    html += '<tr><td colspan="3">Нет сервисов</td></tr>';
+  } else {
+    data.items.forEach(item => {
+      html += `
+        <tr style="border-bottom: 1px solid #eee;">
+          <td style="padding: 8px;">${item.name}</td>
+          <td style="padding: 8px;">${item.status}</td>
+          <td style="padding: 8px;">
+            <button class="btn btn-outline" style="padding: 4px 8px; font-size: 0.8rem;" onclick="openServiceDetails('${item.id}')">Управление</button>
+          </td>
+        </tr>
+      `;
+    });
+  }
+  html += '</table>';
+  
+  document.getElementById('docker-list').innerHTML = html;
+  
+  // Пагинация
+  let pagHtml = '';
+  if (data.has_prev) pagHtml += `<button class="btn btn-outline" onclick="loadDockerServices(${currentPage - 1})">◀ Назад</button> `;
+  pagHtml += ` Стр. ${currentPage + 1} `;
+  if (data.has_next) pagHtml += `<button class="btn btn-outline" onclick="loadDockerServices(${currentPage + 1})">Вперед ▶</button>`;
+  document.getElementById('pagination').innerHTML = pagHtml;
+}
+
+async function openServiceDetails(serviceId) {
+  const res = await fetch(`/api/docker/service/${serviceId}`);
+  const data = await res.json();
+  
+  document.getElementById('modal-title').innerText = data.name;
+  let html = `<p><b>Описание:</b> ${data.description}</p>`;
+  html += `<p><b>Статус:</b> ${data.status}</p>`;
+  html += `<p><b>Автозапуск:</b> ${data.autostart ? '✅ Вкл' : '❌ Выкл'}</p>`;
+  
+  html += `<div style="margin-top: 15px;">`;
+  html += `<button class="btn btn-success" onclick="dockerAction('${serviceId}', 'start')">▶️ Старт</button> `;
+  html += `<button class="btn btn-error" onclick="dockerAction('${serviceId}', 'stop')">⏹️ Стоп</button> `;
+  html += `<button class="btn btn-warning" onclick="dockerAction('${serviceId}', 'restart')">🔄 Рестарт</button> `;
+  html += `<button class="btn btn-outline" onclick="showLogs('${serviceId}')">📜 Логи</button> `;
+  html += `<button class="btn btn-outline" onclick="toggleAutostart('${serviceId}', ${!data.autostart})">${data.autostart ? 'Отключить' : 'Включить'} автозапуск</button>`;
+  html += `<button class="btn btn-outline" onclick="editCompose('${serviceId}')">📝 Edit docker-compose.yml</button>`;
+  html += `</div>`;
+  
+  document.getElementById('modal-content').innerHTML = html;
+  document.getElementById('service-modal').style.display = 'block';
+}
+
+function closeModal() {
+  document.getElementById('service-modal').style.display = 'none';
+}
+
+async function dockerAction(serviceId, action) {
+  if (!confirm(`Выполнить действие "${action}"?`)) return;
+  
+  const res = await fetch('/api/docker/action', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({service_id: serviceId, action: action})
+  });
+  const data = await res.json();
+  alert(data.message);
+  closeModal();
+  loadDockerServices(currentPage);
+}
+
+async function showLogs(serviceId) {
+  const res = await fetch(`/api/docker/logs/${serviceId}`);
+  const data = await res.json();
+  if (data.status === 'ok') {
+    // Используем prompt или новое модальное окно для больших логов, пока alert для простоты
+    // Лучше вывести в том же модальном окне
+    document.getElementById('modal-content').innerHTML = `<pre style="white-space: pre-wrap; background: #f1f1f1; padding: 10px;">${data.content}</pre>`;
+    document.getElementById('modal-title').innerText = "Логи";
+  } else {
+    alert('Ошибка: ' + data.message);
+  }
+}
+
+async function toggleAutostart(serviceId, enable) {
+  const action = enable ? 'enable_auto' : 'disable_auto';
+  await dockerAction(serviceId, action);
+}
+
+async function editCompose(serviceId) {
+  currentEditingServiceId = serviceId;
+  const res = await fetch(`/api/docker/compose/${serviceId}`);
+  const data = await res.json();
+  if (data.status !== 'ok') {
+    alert('Ошибка чтения файла: ' + data.message);
+    return;
+  }
+  
+  document.getElementById('compose-modal-title').innerText = `Edit: ${serviceId}`;
+  document.getElementById('compose-editor').value = data.content;
+  document.getElementById('compose-editor-modal').style.display = 'block';
+  closeModal(); // Закрываем окно деталей
+}
+
+function closeComposeEditor() {
+  document.getElementById('compose-editor-modal').style.display = 'none';
+  currentEditingServiceId = null;
+}
+
+async function saveCompose() {
+  if (!currentEditingServiceId) return;
+  const content = document.getElementById('compose-editor').value;
+  const res = await fetch(`/api/docker/compose/${currentEditingServiceId}`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({content: content})
+  });
+  const data = await res.json();
+  alert(data.message);
+  if (data.status === 'ok') {
+    closeComposeEditor();
+    loadDockerServices(currentPage);
+  }
+}
+
+// YAML Editor Logic
+async function showYamlEditor() {
+  const res = await fetch('/api/docker/config/yaml');
+  const data = await res.json();
+  if (data.status === 'ok') {
+    document.getElementById('yaml-editor').value = data.content;
+    document.getElementById('yaml-editor-modal').style.display = 'block';
+  } else {
+    alert('Ошибка: ' + data.message);
+  }
+}
+
+function closeYamlEditor() {
+  document.getElementById('yaml-editor-modal').style.display = 'none';
+}
+
+async function saveYaml() {
+  const content = document.getElementById('yaml-editor').value;
+  const res = await fetch('/api/docker/config/yaml', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({content: content})
+  });
+  const data = await res.json();
+  alert(data.message);
+  if (data.status === 'ok') {
+    closeYamlEditor();
+    loadDockerServices(0);
+  }
+}
+
+// Инициализация
+document.addEventListener('DOMContentLoaded', () => {
+  loadDockerServices(0);
+});
+</script>

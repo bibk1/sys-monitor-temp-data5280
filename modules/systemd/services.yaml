@@ -1,0 +1,6 @@
+services:
+- id: samba
+  name: Samba SMBD
+  service_name: smbd
+  description: Файловый сервер (Systemd)
+  autostart: true

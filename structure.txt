@@ -1,0 +1,95 @@
+crossplatform_pc_bot/
+├── config.json                      # Конфигурация платформ, режимов и сетей
+├── main.py                          # Точка входа
+├── requirements.txt                 # Зависимости Python
+├── .env                             # Переменные окружения (не в git)
+│
+├── core/
+│   ├── __init__.py
+│   ├── config.py                    # Настройки безопасности
+│   ├── local_api_manager.py         # Управление Docker-контейнером Local Bot API
+│   └── security.py
+│
+├── local_bot/                       # Инфраструктура Local Bot API
+|   ├── docker-compose.yml           # Конфигурация контейнера Telegram Bot API
+|   ├── .env                         # Ссылка на корневой .env (для передачи переменных в Docker)
+|   └── local_bot_data/              # Авто-создаваемая папка: Хранение кэша и сессий бота
+|   
+├── modules/
+│   │
+│   ├── control/                     # Управление ПК
+│   │   ├── __init__.py
+│   │   └── actions.py
+│   │
+│   ├── docker/                      # Модуль управления сервисами (Docker + Systemd)
+│   │   ├── __init__.py
+│   │   ├── actions.py               # Логика: start/stop/restart/logs, автозапуск (docker update)
+│   │   ├── config_loader.py         # Чтение/запись services.yaml, поле autostart
+│   │   └── services.yaml            # Список сервисов (путь, тип, autostart)
+|   |
+│   ├── monitoring/                  # Мониторинг системы
+│   │   └── actions.py
+│   │        
+│   ├── network/                     # Сетевая информация
+│   │   ├── __init__.py
+│   │   └── actions.py
+│   │
+│   ├── systemd/
+│   │   ├── __init__.py
+│   │   ├── actions.py
+│   │   ├── config_loader.py
+│   │   └── services.yaml
+|   |
+│   └── vpn/                         # VLESS-ключи и проверка
+│       ├── __init__.py
+│       ├── actions_VLESS.py
+│       ├── vless_sources.txt        # Источники (создаётся автоматически)
+│       ├── vless_config.json        # Настройки проверки
+│       ├── vless_russian_cidrs.json # Резервные CIDR
+│       ├── vless_speed_report.csv   # Результаты проверки
+│       └── vless_last_run.json      # Метаданные
+|
+└── platforms/
+    |── telegram/
+    |   ├── bot.py                   # Создание и запуск бота
+    |   ├── handlers/                # Обработчики команд
+    |   |   |── __init__.py
+    |   |   ├── control.py
+    │   │   ├── docker.py
+    |   |   ├── main_menu.py
+    |   |   ├── monitoring.py
+    |   |   ├── network.py
+    │   │   ├── systemd.py
+    |   |   └── vpn.py
+    |   |
+    |   ├── keyboards/               # Клавиатуры
+    |   |   ├── control.py
+    │   │   ├── docker.py
+    |   |   ├── main_menu.py
+    |   |   ├── monitoring.py
+    |   |   ├── network.py
+    │   │   ├── systemd.py
+    |   |   └── vpn.py
+    |   |
+    |   └── states/                  # FSM-состояния
+    |       ├── __init__.py
+    │       ├── docker.py
+    │       ├── systemd.py
+    |       └── vpn.py
+    |
+    └── web/
+        ├── app.py                   # FastAPI + аутентификация
+        |
+        ├── handlers/
+        |   ├── control.py
+        |   ├── monitoring.py
+        |   ├── network.py
+        |   └── vpn.py
+        |
+        └── templates/
+            ├── base.html
+            ├── control.html
+            ├── main_menu.html
+            ├── monitoring.html
+            ├── network.html
+            └── vpn.html

@@ -1,0 +1,20 @@
+{
+  "platforms": {
+    "telegram": true,
+    "vk": false,
+    "web": true
+  },
+  "telegram": {
+    "mode": "cloud",
+    "local_api": {
+      "image": "aiogram/telegram-bot-api:latest",
+      "port": 8002,
+      "host": "192.168.50.1",
+      "data_dir": "/home/debian/Project/crossplatform_pc_bot/local_bot"
+    }
+  },
+  "web_server": {
+    "host": "192.168.50.1",
+    "port": 8001
+  }
+}

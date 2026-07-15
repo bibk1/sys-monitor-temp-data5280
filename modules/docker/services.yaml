@@ -1,0 +1,16 @@
+services:
+- id: qbittorrent
+  name: qBittorrent
+  path: /home/debian/nas/qbittorrent
+  description: Торрент-клиент
+  autostart: false
+- id: filebrowser
+  name: FileBrowser
+  path: /home/debian/nas/filebrowser
+  description: Веб-файловый менеджер
+  autostart: false
+- id: cloudcmd
+  name: cloudcmd
+  path: /home/debian/nas/cloudcmd/
+  description: Веб-файловый менеджер
+  autostart: false
